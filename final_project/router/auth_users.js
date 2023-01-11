@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 let books = require("./booksdb.js");
 const regd_users = express.Router();
 
-let users = [];
+let users = [{"username":"user", "password":"password"},{"username":"user3", "password":"password"}];
 
 const isValid = (username)=>{ //returns boolean
 //check is the username is valid
@@ -52,8 +52,66 @@ regd_users.post("/login", (req,res) => {
 
 // Add a book review
 regd_users.put("/auth/review/:isbn", (req, res) => {
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
+
+  const isbn = req.params.isbn;
+  const bookreviews = books[isbn]['reviews'];
+  const username = req.session.authorization.username;
+  let index = 0;
+  //reviewExist
+  let userReview;
+  if (bookreviews) {
+    Object.values(bookreviews).filter((bookreview)=>{
+      index++;
+      if (bookreview.username === username) {
+        userReview = {index, "username":bookreview.username ,"review":bookreview.review}
+      }
+    });
+    let review = req.body.review;
+    if (userReview) {
+      if(review) {
+        books[isbn]['reviews'][userReview.index].review = review;
+        res.send(`The review: ${review} has been updated.`);
+
+      } else {
+        res.send("Unable to find a Review!");
+      }
+    }
+    else{
+      let lastIndex = Object.keys(bookreviews)[Object.keys(bookreviews).length-1];
+      books[isbn]['reviews'][parseInt(lastIndex)+1] = {"username":username,"review":review};
+      res.send(`New review: ${review} has been added.`);
+    }
+  } else {
+    res.send("Unable to find books!");
+  }
+
+});
+
+regd_users.delete("/auth/review/:isbn", (req, res) => {
+  const isbn = req.params.isbn;
+  const bookreviews = books[isbn]['reviews'];
+  const username = req.session.authorization.username;
+  let index = 0;
+  //reviewExist
+  let userReview;
+  if (bookreviews) {
+    Object.values(bookreviews).filter((bookreview)=>{
+      index++;
+      if (bookreview.username === username) {
+        userReview = {index, "username":bookreview.username ,"review":bookreview.review}
+      }
+    });
+
+    if (userReview) {
+      delete books[isbn]['reviews'][userReview.index];
+      res.send(`your review has been deleted.`);
+    }
+    else{
+      res.send("Unable to find user Review!");
+    }
+  } else {
+    res.send("Unable to find books!");
+  }
 });
 
 module.exports.authenticated = regd_users;
